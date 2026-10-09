@@ -9,7 +9,9 @@ export HERMES_HOME=/home/zerops/.hermes
 export PATH="$HOME/.local/bin:/opt/zerops/bin:$PATH"
 
 # 9router (npm global; on zerops nodejs base npm is available user-wide)
-npm install -g 9router || npm install --prefix "$HOME/.local" -g 9router || true
+# clean stale partial install first (npm ENOTEMPTY on re-deploy)
+rm -rf "$HOME/.local/lib/node_modules/9router" "$HOME/.local/bin/9router" 2>/dev/null || true
+npm install -g --force 9router || npm install --prefix "$HOME/.local" -g 9router || true
 export PATH="$HOME/.local/bin:$PATH"
 
 # hermes (user install, no root needed)
