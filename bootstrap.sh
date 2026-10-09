@@ -8,7 +8,8 @@ set -x
 export HERMES_HOME=/home/zerops/.hermes
 export PATH="$HOME/.local/bin:/opt/zerops/bin:$PATH"
 
-# 9router (idempotent: skip if already installed and working)
+# 9router install happens HERE (not initCommands — those run parallel with start).
+# idempotent: skip if already installed and working.
 export PATH="$HOME/.local/bin:$PATH"
 if ! command -v 9router >/dev/null 2>&1; then
   rm -rf "$HOME/.local/lib/node_modules/9router" "$HOME/.local/bin/9router" 2>/dev/null || true

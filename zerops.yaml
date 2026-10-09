@@ -10,6 +10,6 @@ zerops:
       ports:
         - port: 20128
           httpSupport: true
-      initCommands:
-        - npm install -g 9router || true
       start: bash ./bootstrap.sh
+      # NOTE: no initCommands — npm install 9router runs inside bootstrap.sh
+      # because initCommands run in parallel with start (race condition).
