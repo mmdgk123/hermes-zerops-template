@@ -8,11 +8,12 @@ set -x
 export HERMES_HOME=/home/zerops/.hermes
 export PATH="$HOME/.local/bin:/opt/zerops/bin:$PATH"
 
-# 9router (npm global; on zerops nodejs base npm is available user-wide)
-# clean stale partial install first (npm ENOTEMPTY on re-deploy)
-rm -rf "$HOME/.local/lib/node_modules/9router" "$HOME/.local/bin/9router" 2>/dev/null || true
-npm install -g --force 9router || npm install --prefix "$HOME/.local" -g 9router || true
+# 9router (idempotent: skip if already installed and working)
 export PATH="$HOME/.local/bin:$PATH"
+if ! command -v 9router >/dev/null 2>&1; then
+  rm -rf "$HOME/.local/lib/node_modules/9router" "$HOME/.local/bin/9router" 2>/dev/null || true
+  npm install --prefix "$HOME/.local" -g 9router || true
+fi
 
 # hermes (user install, no root needed)
 if ! command -v hermes >/dev/null 2>&1; then
@@ -35,8 +36,19 @@ hermes config set model.base_url "http://127.0.0.1:20128/v1" 2>/dev/null || true
 
 export PORT=20128 HOSTNAME=0.0.0.0 DATA_DIR=/home/zerops/.9router \
   NEXT_PUBLIC_BASE_URL="http://127.0.0.1:20128" INITIAL_PASSWORD=123456
-nohup 9router --no-browser --port 20128 > /home/zerops/9router.log 2>&1 &
-sleep 5
+if command -v 9router >/dev/null 2>&1; then
+  nohup 9router --no-browser --port 20128 > /home/zerops/9router.log 2>&1 &
+  # wait for 9router API before starting gateway (model needs it)
+  for i in $(seq 1 30); do
+    sleep 5
+    if curl -sf --max-time 5 http://127.0.0.1:20128/v1/models >/dev/null 2>&1; then
+      echo "9router ready"
+      break
+    fi
+  done
+else
+  echo "WARNING: 9router not installed, gateway will use free default model"
+fi
 nohup hermes gateway run > /home/zerops/gateway.log 2>&1 &
 echo "bootstrap done, services starting..."
 wait
