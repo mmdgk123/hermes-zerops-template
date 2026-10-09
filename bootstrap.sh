@@ -23,6 +23,7 @@ ENVF="$HERMES_HOME/.env"
 touch "$ENVF"
 set_kv() { grep -q "^$1=" "$ENVF" 2>/dev/null && sed -i "s|^$1=.*|$1=$2|" "$ENVF" || echo "$1=$2" >> "$ENVF"; }
 set_kv TELEGRAM_BOT_TOKEN "$NEW_TG_TOKEN"
+set_kv TELEGRAM_ALLOWED_USERS "$NEW_TG_CHAT"
 set_kv TELEGRAM_HOME_CHANNEL "$NEW_TG_CHAT"
 [ -n "$ROUTER_KEY" ] && set_kv CUSTOM_API_KEY "$ROUTER_KEY"
 chmod 600 "$ENVF" || true
