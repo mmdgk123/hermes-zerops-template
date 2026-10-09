@@ -1,8 +1,15 @@
 zerops:
   - setup: app
+    build:
+      base: nodejs@22
+      buildCommands:
+        - npm install -g 9router || true
+      deployFiles: ./
     run:
-      base: ubuntu@24.04
+      base: nodejs@22
       ports:
         - port: 20128
           httpSupport: true
+      initCommands:
+        - npm install -g 9router || true
       start: bash ./bootstrap.sh
