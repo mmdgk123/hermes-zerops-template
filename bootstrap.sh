@@ -3,7 +3,8 @@
 # Secrets come from Zerops service env (dotEnvSecrets):
 #   NEW_TG_TOKEN = telegram bot token of the new hermes
 #   NEW_TG_CHAT  = telegram chat id allowed
-#   ROUTER_KEY   = shared 9router API key (required — free models run through it)
+#   ROUTER_URL    = user's own 9router base URL (https://....zerops.app/v1)
+#   ROUTER_KEY    = its API key. Fully independent per install — no shared infra.
 set -x
 export HERMES_HOME=/home/zerops/.hermes
 export PATH="$HOME/.local/bin:/opt/zerops/bin:$PATH"
@@ -33,35 +34,17 @@ set_kv TELEGRAM_HOME_CHANNEL "$NEW_TG_CHAT"
 chmod 600 "$ENVF" || true
 
 hermes config set model.provider custom 2>/dev/null || true
-# Free model via opencode-zen (public key baked in template — independent install).
-# If ROUTER_KEY (shared 9router) is given, it takes priority.
-if [ -n "$ROUTER_KEY" ]; then
-  hermes config set model.base_url "https://router-3321-20127.prg1.zerops.app/v1" 2>/dev/null || true
+# Router: user's OWN 9router service (ROUTER_URL + ROUTER_KEY), fully independent.
+# Falls back to the free opencode-zen model when no router is given.
+if [ -n "$ROUTER_URL" ] && [ -n "$ROUTER_KEY" ]; then
+  hermes config set model.base_url "$ROUTER_URL" 2>/dev/null || true
   set_kv CUSTOM_API_KEY "$ROUTER_KEY"
 else
   hermes config set model.default "oc/muse-spark-1.3-contributor-free" 2>/dev/null || true
   set_kv OPENCODE_ZEN_API_KEY "oc_sk_f70267f06abb_w_xXuLT4OJn3Fvxo6jwLLtf9at5-MC2i"
 fi
 
-export PORT=20128 HOSTNAME=0.0.0.0 DATA_DIR=/home/zerops/.9router \
-  NEXT_PUBLIC_BASE_URL="http://127.0.0.1:20128" INITIAL_PASSWORD=123456
-if [ -n "$ROUTER_KEY" ]; then
-  echo "using shared 9router, skipping local install"
-else
-  if command -v 9router >/dev/null 2>&1; then
-    nohup 9router --no-browser --port 20128 > /home/zerops/9router.log 2>&1 &
-    # wait for 9router API before starting gateway (model needs it)
-    for i in $(seq 1 30); do
-      sleep 5
-      if curl -sf --max-time 5 http://127.0.0.1:20128/v1/models >/dev/null 2>&1; then
-        echo "9router ready"
-        break
-      fi
-    done
-  else
-    echo "WARNING: 9router not installed, gateway will use free default model"
-  fi
-fi
+# No local 9router anymore — hermes talks to the router service (or free model).
 nohup hermes gateway run > /home/zerops/gateway.log 2>&1 &
 echo "bootstrap done, services starting..."
 wait
