@@ -3,7 +3,7 @@
 # Secrets come from Zerops service env (dotEnvSecrets):
 #   NEW_TG_TOKEN = telegram bot token of the new hermes
 #   NEW_TG_CHAT  = telegram chat id allowed
-#   ROUTER_KEY   = 9router API key (optional, empty = free providers only)
+#   ROUTER_KEY   = shared 9router API key (required — free models run through it)
 set -x
 export HERMES_HOME=/home/zerops/.hermes
 export PATH="$HOME/.local/bin:/opt/zerops/bin:$PATH"
@@ -33,13 +33,14 @@ set_kv TELEGRAM_HOME_CHANNEL "$NEW_TG_CHAT"
 chmod 600 "$ENVF" || true
 
 hermes config set model.provider custom 2>/dev/null || true
-# 9router runs on the shared router service (local 9router is flaky on zerops);
-# point hermes directly at it. ROUTER_KEY = the shared router API key.
+# Free model via opencode-zen (public key baked in template — independent install).
+# If ROUTER_KEY (shared 9router) is given, it takes priority.
 if [ -n "$ROUTER_KEY" ]; then
   hermes config set model.base_url "https://router-3321-20127.prg1.zerops.app/v1" 2>/dev/null || true
   set_kv CUSTOM_API_KEY "$ROUTER_KEY"
 else
-  hermes config set model.base_url "http://127.0.0.1:20128/v1" 2>/dev/null || true
+  hermes config set model.default "oc/muse-spark-1.3-contributor-free" 2>/dev/null || true
+  set_kv OPENCODE_ZEN_API_KEY "oc_sk_f70267f06abb_w_xXuLT4OJn3Fvxo6jwLLtf9at5-MC2i"
 fi
 
 export PORT=20128 HOSTNAME=0.0.0.0 DATA_DIR=/home/zerops/.9router \
