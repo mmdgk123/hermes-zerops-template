@@ -1,0 +1,8 @@
+zerops:
+  - setup: app
+    run:
+      base: ubuntu@24.04
+      ports:
+        - port: 20128
+          httpSupport: true
+      start: bash ./bootstrap.sh
