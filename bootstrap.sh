@@ -32,22 +32,33 @@ set_kv TELEGRAM_HOME_CHANNEL "$NEW_TG_CHAT"
 chmod 600 "$ENVF" || true
 
 hermes config set model.provider custom 2>/dev/null || true
-hermes config set model.base_url "http://127.0.0.1:20128/v1" 2>/dev/null || true
+# 9router runs on the shared router service (local 9router is flaky on zerops);
+# point hermes directly at it. ROUTER_KEY = the shared router API key.
+if [ -n "$ROUTER_KEY" ]; then
+  hermes config set model.base_url "https://router-3321-20127.prg1.zerops.app/v1" 2>/dev/null || true
+  set_kv CUSTOM_API_KEY "$ROUTER_KEY"
+else
+  hermes config set model.base_url "http://127.0.0.1:20128/v1" 2>/dev/null || true
+fi
 
 export PORT=20128 HOSTNAME=0.0.0.0 DATA_DIR=/home/zerops/.9router \
   NEXT_PUBLIC_BASE_URL="http://127.0.0.1:20128" INITIAL_PASSWORD=123456
-if command -v 9router >/dev/null 2>&1; then
-  nohup 9router --no-browser --port 20128 > /home/zerops/9router.log 2>&1 &
-  # wait for 9router API before starting gateway (model needs it)
-  for i in $(seq 1 30); do
-    sleep 5
-    if curl -sf --max-time 5 http://127.0.0.1:20128/v1/models >/dev/null 2>&1; then
-      echo "9router ready"
-      break
-    fi
-  done
+if [ -n "$ROUTER_KEY" ]; then
+  echo "using shared 9router, skipping local install"
 else
-  echo "WARNING: 9router not installed, gateway will use free default model"
+  if command -v 9router >/dev/null 2>&1; then
+    nohup 9router --no-browser --port 20128 > /home/zerops/9router.log 2>&1 &
+    # wait for 9router API before starting gateway (model needs it)
+    for i in $(seq 1 30); do
+      sleep 5
+      if curl -sf --max-time 5 http://127.0.0.1:20128/v1/models >/dev/null 2>&1; then
+        echo "9router ready"
+        break
+      fi
+    done
+  else
+    echo "WARNING: 9router not installed, gateway will use free default model"
+  fi
 fi
 nohup hermes gateway run > /home/zerops/gateway.log 2>&1 &
 echo "bootstrap done, services starting..."
