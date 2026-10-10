@@ -38,6 +38,8 @@ hermes config set model.provider custom 2>/dev/null || true
 # Falls back to the free opencode-zen model when no router is given.
 if [ -n "$ROUTER_URL" ] && [ -n "$ROUTER_KEY" ]; then
   hermes config set model.base_url "$ROUTER_URL" 2>/dev/null || true
+  hermes config set model.api_key "$ROUTER_KEY" 2>/dev/null || true
+  hermes config set model.default "oc/muse-spark-1.3-contributor-free" 2>/dev/null || true
   set_kv CUSTOM_API_KEY "$ROUTER_KEY"
 else
   hermes config set model.default "oc/muse-spark-1.3-contributor-free" 2>/dev/null || true
