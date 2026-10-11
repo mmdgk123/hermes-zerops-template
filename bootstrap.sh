@@ -5,7 +5,6 @@
 #   NEW_TG_CHAT  = telegram chat id allowed
 #   ROUTER_URL    = user's own 9router base URL (https://....zerops.app/v1)
 #   ROUTER_KEY    = its API key. Fully independent per install — no shared infra.
-#   ZEN_KEY       = user's OWN OpenCode Zen key (from opencode.ai/zen). No shared keys.
 set -x
 export HERMES_HOME=/home/zerops/.hermes
 export PATH="$HOME/.local/bin:/opt/zerops/bin:$PATH"
@@ -36,19 +35,15 @@ chmod 600 "$ENVF" || true
 
 hermes config set model.provider custom 2>/dev/null || true
 # Router: user's OWN 9router service (ROUTER_URL + ROUTER_KEY), fully independent.
-# Falls back to the free opencode-zen model when no router is given.
+# The model comes from the router's OpenCode Free provider (no auth) — no zen key needed.
 if [ -n "$ROUTER_URL" ] && [ -n "$ROUTER_KEY" ]; then
   hermes config set model.base_url "$ROUTER_URL" 2>/dev/null || true
   hermes config set model.api_key "$ROUTER_KEY" 2>/dev/null || true
   hermes config set model.default "oc/muse-spark-1.3-contributor-free" 2>/dev/null || true
   set_kv CUSTOM_API_KEY "$ROUTER_KEY"
-  [ -n "$ZEN_KEY" ] && set_kv OPENCODE_ZEN_API_KEY "$ZEN_KEY"
 else
-  [ -n "$ZEN_KEY" ] && set_kv OPENCODE_ZEN_API_KEY "$ZEN_KEY"
-  if [ -z "$ZEN_KEY" ]; then
-    echo "ERROR: ZEN_KEY missing — each install needs its own OpenCode Zen key. Refusing to use any shared key." >&2
-    exit 1
-  fi
+  echo "ERROR: ROUTER_URL/ROUTER_KEY missing — router URL and key are required." >&2
+  exit 1
 fi
 
 # No local 9router anymore — hermes talks to the router service (or free model).
